@@ -1,0 +1,14 @@
+{
+  "name": "restaurant-table-reservation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node.js project for a restaurant table reservation management system",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "lint": "node --check src/reservationService.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
