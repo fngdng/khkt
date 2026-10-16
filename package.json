@@ -2,11 +2,26 @@
   "name": "restaurant-table-reservation",
   "version": "1.0.0",
   "private": true,
-  "description": "Node.js project for a restaurant table reservation management system",
+  "description": "Next.js project for a restaurant table reservation management system",
   "type": "module",
   "scripts": {
+    "dev": "next dev -p 5000",
+    "build": "next build",
+    "start": "next start -p 5000",
     "test": "node --test",
-    "lint": "node --check src/reservationService.js"
+    "lint": "eslint . && node --check src/reservationService.js",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down"
+  },
+  "dependencies": {
+    "next": "^16.4.2",
+    "pg": "^8.16.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "eslint": "^10.12.0",
+    "eslint-config-next": "^16.4.2"
   },
   "engines": {
     "node": ">=20"

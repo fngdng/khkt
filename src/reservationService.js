@@ -22,32 +22,32 @@ export function validateReservationRequest(request) {
   const issues = [];
 
   if (!request || typeof request !== 'object') {
-    return ['Reservation request must be an object.'];
+    return ['Yêu cầu đặt bàn phải là một đối tượng hợp lệ.'];
   }
 
   if (typeof request.customerName !== 'string' || request.customerName.trim().length < 2) {
-    issues.push('customerName must contain at least 2 characters.');
+    issues.push('Tên khách hàng phải có ít nhất 2 ký tự.');
   }
 
   if (typeof request.phone !== 'string' || !/^0\d{9}$/.test(request.phone)) {
-    issues.push('phone must be a valid 10-digit Vietnamese mobile number.');
+    issues.push('Số điện thoại phải là số di động Việt Nam gồm 10 chữ số.');
   }
 
   if (typeof request.partySize !== 'number' || !Number.isInteger(request.partySize) || request.partySize < 1) {
-    issues.push('partySize must be a positive integer.');
+    issues.push('Số lượng khách phải là số nguyên dương.');
   }
 
   if (typeof request.durationMinutes !== 'number' || !Number.isInteger(request.durationMinutes) || request.durationMinutes < 30) {
-    issues.push('durationMinutes must be an integer of at least 30.');
+    issues.push('Thời lượng đặt bàn phải là số nguyên từ 30 phút trở lên.');
   }
 
   if (typeof request.date !== 'string' || Number.isNaN(Date.parse(request.date))) {
-    issues.push('date must be an ISO date string.');
+    issues.push('Ngày đặt bàn phải theo định dạng ngày hợp lệ (ISO).');
   }
 
   const time = parseTimeToMinutes(request.time);
   if (Number.isNaN(time)) {
-    issues.push('time must be in HH:MM format.');
+    issues.push('Giờ đặt bàn phải theo định dạng HH:MM.');
   }
 
   return issues;
@@ -94,11 +94,29 @@ export function createReservation({ tables, existingReservations = [], request }
     };
   }
 
-  const table = findAvailableTable(tables, existingReservations, request);
+  let table;
+  if (request.tableId) {
+    table = tables.find((candidate) => candidate.id === request.tableId);
+    if (!table) {
+      return { ok: false, errors: ['Bàn bạn chọn không tồn tại. Vui lòng tải lại danh sách bàn.'] };
+    }
+    if (table.capacity < request.partySize) {
+      return { ok: false, errors: [`Bàn ${table.id} chỉ có ${table.capacity} chỗ, không đủ cho ${request.partySize} khách.`] };
+    }
+    const hasConflict = existingReservations
+      .filter((reservation) => reservation.tableId === table.id)
+      .some((reservation) => hasReservationConflict(reservation, request));
+    if (hasConflict) {
+      return { ok: false, errors: [`Bàn ${table.id} đã được đặt trong khung giờ này. Vui lòng chọn bàn khác hoặc giờ khác.`] };
+    }
+  } else {
+    table = findAvailableTable(tables, existingReservations, request);
+  }
+
   if (!table) {
     return {
       ok: false,
-      errors: ['No suitable table is available for the requested time slot.'],
+      errors: ['Không có bàn phù hợp cho khung giờ bạn yêu cầu.'],
     };
   }
 
