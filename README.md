@@ -1,4 +1,4 @@
-﻿# TableOn VN — quản lý đặt bàn
+﻿# Quản lý đặt bàn
 
 Ứng dụng Next.js có giao diện admin, API đặt bàn và PostgreSQL.
 
