@@ -1,4 +1,5 @@
 import ReservationManager from '../components/ReservationManager';
+import Link from 'next/link';
 
 export default function AdminPage() {
   return (
@@ -6,7 +7,7 @@ export default function AdminPage() {
       <section className="hero-surface">
         <nav className="top-nav" aria-label="Điều hướng chính">
           <p className="brand"><span>· ADMIN</span></p>
-          <a className="connection-label" href="/">Trang khách hàng</a>
+          <Link className="connection-label" href="/">Trang khách hàng</Link>
         </nav>
         <div className="hero-copy">
           <p className="eyebrow">QUẢN TRỊ NHÀ HÀNG</p>
