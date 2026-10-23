@@ -81,22 +81,22 @@ export default function ReservationManager() {
       fetch('/api/reservations', { cache: 'no-store' }).then(readResponse),
       fetch('/api/tables', { cache: 'no-store' }).then(readResponse),
     ]);
-    setReservations(reservationData.reservations);
-    setTables(tableData.tables);
+    return { reservations: reservationData.reservations, tables: tableData.tables };
   }, []);
 
+  const refreshData = useCallback(async () => {
+    const data = await loadData();
+    setReservations(data.reservations);
+    setTables(data.tables);
+  }, [loadData]);
+
   useEffect(() => {
-    Promise.all([
-      fetch('/api/reservations', { cache: 'no-store' }).then(readResponse),
-      fetch('/api/tables', { cache: 'no-store' }).then(readResponse),
-    ])
-      .then(([reservationData, tableData]) => {
-        setReservations(reservationData.reservations);
-        setTables(tableData.tables);
+    loadData()
+      .then(({ reservations: nextReservations, tables: nextTables }) => {
+        setReservations(nextReservations);
+        setTables(nextTables);
       })
-      .catch((error) =>
-        setFeedback({ type: 'error', messages: [error.message] }),
-      )
+      .catch((error) => setFeedback({ type: 'error', messages: [error.message] }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -127,26 +127,14 @@ export default function ReservationManager() {
     setSaving(true);
     setFeedback({ type: '', messages: [] });
     try {
-      const data = await readResponse(
-        await fetch('/api/reservations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...form,
-            tableId: form.tableId || undefined,
-            durationMinutes: Number(form.durationMinutes),
-            partySize: Number(form.partySize),
-          }),
-        }),
-      );
-      await loadData();
-      setFeedback({
-        type: 'success',
-        messages: [
-          `Đã lưu đặt bàn cho ${data.reservation.customerName} tại bàn ${data.reservation.tableId}. Đặt bàn đang chờ duyệt.`,
-        ],
-      });
-      setForm({ ...DEFAULT_FORM, date: localToday() });
+      const data = await readResponse(await fetch('/api/reservations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, tableId: form.tableId || undefined, durationMinutes: Number(form.durationMinutes), partySize: Number(form.partySize) }),
+      }));
+      await refreshData();
+      setFeedback({ type: 'success', messages: [`Đã lưu đặt bàn cho ${data.reservation.customerName} tại bàn ${data.reservation.tableId}. Đặt bàn đang chờ duyệt.`] });
+      setForm(DEFAULT_FORM);
     } catch (error) {
       setFeedback({ type: 'error', messages: [error.message] });
     } finally {
@@ -158,14 +146,12 @@ export default function ReservationManager() {
     setFeedback({ type: '', messages: [] });
     setUpdatingId(reservationId);
     try {
-      await readResponse(
-        await fetch(`/api/reservations/${reservationId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        }),
-      );
-      await loadData();
+      await readResponse(await fetch(`/api/reservations/${reservationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      }));
+      await refreshData();
       setFeedback({ type: 'success', messages: ['Đã lưu cập nhật đặt bàn'] });
     } catch (error) {
       setFeedback({ type: 'error', messages: [error.message] });
@@ -368,91 +354,12 @@ export default function ReservationManager() {
 
       <article className="panel list-panel" id="reservations">
         <div className="list-heading">
-          <div>
-            <h2>Danh sách đặt bàn</h2>
-            <p className="supporting-text">
-              Hôm nay: {todayCount} lượt • Chờ duyệt: {pendingCount}
-            </p>
-          </div>
-          <button
-            className="secondary-btn"
-            type="button"
-            onClick={() =>
-              loadData().catch((error) =>
-                setFeedback({ type: 'error', messages: [error.message] }),
-              )
-            }
-          >
-            Tải lại
-          </button>
-        </div>
-        <div className="reservation-filters">
-          <label>
-            Ngày đặt bàn
-            <input
-              aria-label="Lọc theo ngày"
-              type="date"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-            />
-          </label>
-          <label>
-            Trạng thái
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-            >
-              <option value="all">Tất cả trạng thái</option>
-              {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="secondary-btn"
-            type="button"
-            onClick={() => {
-              setSelectedDate('');
-              setStatusFilter('all');
-              setPhoneQuery('');
-              setSearchPhone('');
-            }}
-          >
-            Xem tất cả ngày
-          </button>
+          <div><h2>Duyệt và quản lý đặt bàn</h2><p className="supporting-text">Hôm nay: {todayCount} lượt • Chờ duyệt: {pendingCount}</p></div>
+          <button className="secondary-btn" type="button" onClick={() => refreshData().catch((error) => setFeedback({ type: 'error', messages: [error.message] }))}>Tải lại</button>
         </div>
         <form className="search-form" onSubmit={searchByPhone}>
           <label htmlFor="search-phone">Tra cứu theo số điện thoại</label>
-          <div className="search-controls">
-            <input
-              id="search-phone"
-              type="tel"
-              inputMode="numeric"
-              value={phoneQuery}
-              onChange={(event) => setPhoneQuery(event.target.value)}
-              placeholder="Nhập số điện thoại"
-            />
-            <button type="submit" disabled={searching}>
-              {searching ? 'Đang tìm' : 'Tra cứu'}
-            </button>
-            {searchPhone && (
-              <button
-                className="secondary-btn"
-                type="button"
-                onClick={() => {
-                  setPhoneQuery('');
-                  setSearchPhone('');
-                  loadData().catch((error) =>
-                    setFeedback({ type: 'error', messages: [error.message] }),
-                  );
-                }}
-              >
-                Xóa lọc
-              </button>
-            )}
-          </div>
+          <div className="search-controls"><input id="search-phone" type="tel" inputMode="numeric" value={phoneQuery} onChange={(event) => setPhoneQuery(event.target.value)} placeholder="Nhập số điện thoại" /><button type="submit" disabled={searching}>{searching ? 'Đang tìm' : 'Tra cứu'}</button>{searchPhone && <button className="secondary-btn" type="button" onClick={() => { setPhoneQuery(''); setSearchPhone(''); refreshData().catch((error) => setFeedback({ type: 'error', messages: [error.message] })); }}>Xóa lọc</button>}</div>
         </form>
         <div className="table-list">
           {loading ? (

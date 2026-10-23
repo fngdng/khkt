@@ -1,25 +1,14 @@
 import Link from 'next/link';
 import ReservationManager from '../components/ReservationManager';
+import Link from 'next/link';
 
 export default function AdminPage() {
   return (
-    <main className="admin-layout">
-      <aside className="admin-sidebar">
-        <Link className="wordmark" href="/">
-          bếp<span>nhà.</span>
-          <small>KHÔNG GIAN QUẢN TRỊ</small>
-        </Link>
-        <p className="sidebar-label">VẬN HÀNH NHÀ HÀNG</p>
-        <nav aria-label="Điều hướng quản trị">
-          <a className="active" href="#reservations">
-            ▤ <span>Sổ đặt bàn</span>
-          </a>
-          <a href="#floor">
-            ▦ <span>Sơ đồ bàn</span>
-          </a>
-          <a href="#new-booking">
-            ＋ <span>Tạo đặt bàn</span>
-          </a>
+    <main className="page-shell">
+      <section className="hero-surface">
+        <nav className="top-nav" aria-label="Điều hướng chính">
+          <p className="brand"><span>· ADMIN</span></p>
+          <Link className="connection-label" href="/">Trang khách hàng</Link>
         </nav>
         <div className="sidebar-bottom">
           <p>Chu đáo từ lúc đặt bàn.</p>
