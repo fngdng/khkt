@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import ReservationManager from '../components/ReservationManager';
-import Link from 'next/link';
 
 export default function AdminPage() {
   return (
@@ -17,7 +16,7 @@ export default function AdminPage() {
             <span className="arrow-icon" aria-hidden="true" />
           </Link>
         </div>
-      </aside>
+      </section>
       <div className="admin-main">
         <header className="admin-header">
           <div>

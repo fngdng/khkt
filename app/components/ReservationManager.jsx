@@ -98,7 +98,7 @@ export default function ReservationManager() {
       })
       .catch((error) => setFeedback({ type: 'error', messages: [error.message] }))
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadData]);
 
   const sortedReservations = useMemo(
     () =>
