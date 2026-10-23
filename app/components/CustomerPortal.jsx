@@ -153,7 +153,7 @@ export default function CustomerPortal() {
     <main className="page-shell customer-page">
       <nav className="customer-nav" aria-label="Điều hướng chính">
         <Link className="wordmark" href="/">
-          bếp<span>nhà.</span>
+          <span>bếp nhà.</span>
           <small>ẨM THỰC & KẾT NỐI</small>
         </Link>
         <div className="nav-links">
@@ -437,7 +437,7 @@ export default function CustomerPortal() {
       </section>
       <footer className="site-footer">
         <span className="wordmark">
-          bếp<span>nhà.</span>
+          bếp <span>nhà.</span>
         </span>
         <p>Mỗi cuộc hẹn, một chút ấm áp.</p>
         <span>Hẹn gặp bạn tại bàn ăn.</span>

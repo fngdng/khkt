@@ -101,10 +101,10 @@ h2 {
   gap: 24px;
 }
 .wordmark {
-  font-family: Georgia, serif;
+  font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 34px;
-  letter-spacing: -2px;
-  line-height: 1.15;
+  letter-spacing: 0;
+  line-height: 1.3;
   font-weight: bold;
   white-space: nowrap;
 }
