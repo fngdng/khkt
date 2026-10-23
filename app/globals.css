@@ -101,10 +101,10 @@ h2 {
   gap: 24px;
 }
 .wordmark {
-  font-family: Georgia, serif;
+  font-family: 'Noto Serif', 'DejaVu Serif', Georgia, 'Times New Roman', serif;
   font-size: 34px;
-  letter-spacing: -2px;
-  line-height: 1.15;
+  letter-spacing: -0.5px;
+  line-height: 1.25;
   font-weight: bold;
   white-space: nowrap;
 }
