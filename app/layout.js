@@ -1,8 +1,9 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Quản lý đặt bàn nhà hàng',
-  description: 'Ứng dụng quản lý đặt bàn nhà hàng cơ bản với Next.js',
+  title: 'Bếp Nhà · Đặt bàn cho những cuộc hẹn',
+  description:
+    'Đặt bàn tại Bếp Nhà: chọn ngày giờ, gửi yêu cầu và tra cứu lịch hẹn dễ dàng bằng số điện thoại.',
 };
 
 export default function RootLayout({ children }) {

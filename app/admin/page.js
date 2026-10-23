@@ -1,5 +1,5 @@
-import ReservationManager from '../components/ReservationManager';
 import Link from 'next/link';
+import ReservationManager from '../components/ReservationManager';
 
 export default function AdminPage() {
   return (
@@ -9,15 +9,27 @@ export default function AdminPage() {
           <p className="brand"><span>· ADMIN</span></p>
           <Link className="connection-label" href="/">Trang khách hàng</Link>
         </nav>
-        <div className="hero-copy">
-          <p className="eyebrow">QUẢN TRỊ NHÀ HÀNG</p>
-          <h1>Duyệt đặt bàn và đón khách chu đáo</h1>
-          <p>Theo dõi lịch đặt, xác nhận khách và tra cứu nhanh bằng số điện thoại.</p>
-        </div>
-        <div className="hero-metrics" aria-label="Chỉ số vận hành">
+        <div className="sidebar-bottom">
+          <p>Chu đáo từ lúc đặt bàn.</p>
+          <Link href="/">
+            Về trang khách hàng{' '}
+            <span className="arrow-icon" aria-hidden="true" />
+          </Link>
         </div>
       </section>
-      <ReservationManager />
+      <div className="admin-main">
+        <header className="admin-header">
+          <div>
+            <p className="eyebrow">TỔNG QUAN VẬN HÀNH</p>
+            <h1>Sổ đặt bàn</h1>
+            <p>Mỗi vị khách đều xứng đáng được đón tiếp chu đáo.</p>
+          </div>
+          <span className="workspace-badge">
+            Bếp Nhà <small>Không gian nhân viên</small>
+          </span>
+        </header>
+        <ReservationManager />
+      </div>
     </main>
   );
 }
