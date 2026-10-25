@@ -29,6 +29,14 @@ PostgreSQL image chạy script `docker/postgres/init/01-init.sql` khi khởi t�
 
 Trang khách tại `/` không yêu cầu đăng nhập: khách có thể gửi yêu cầu đặt bàn và tra cứu trạng thái bằng đúng số điện thoại đã dùng. Trang `/admin` dành cho nhân viên duyệt, cập nhật trạng thái và hủy đặt bàn.
 
+## Tài liệu dự án
+
+- [Project Charter](docs/project-charter.md)
+- [WBS and Gantt](docs/wbs-gantt.md)
+- [Scrum roles, Sprint 0 backlog, and MVP demo](docs/scrum-sprint-0.md)
+- [Submission index (document and bug links)](docs/submission-index.md)
+- [Bug register](docs/bug-register.md)
+
 ## Lệnh
 
 - `npm run dev`: chạy web tại cổng 5000.
