@@ -393,7 +393,7 @@ export default function ReservationManager() {
                       Duyệt đặt bàn
                     </button>
                   )}
-                  {reservation.status !== 'arrived' &&
+                  {reservation.status === 'confirmed' &&
                     reservation.status !== 'cancelled' && (
                       <button
                         type="button"

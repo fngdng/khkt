@@ -133,7 +133,7 @@ export default function CustomerPortal() {
         await fetch(`/api/reservations/${reservationId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'cancelled' }),
+          body: JSON.stringify({ status: 'cancelled', phone: phone.replace(/\D/g, '') }),
         }),
       );
       const params = new URLSearchParams({ phone: phone.trim() });

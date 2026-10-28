@@ -5,9 +5,9 @@
   "description": "Next.js project for a restaurant table reservation management system",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 5000",
+    "dev": "next dev -p 10000",
     "build": "next build",
-    "start": "next start -p 5000",
+    "start": "next start",
     "test": "node --test",
     "lint": "eslint . && node --check src/reservationService.js",
     "db:up": "docker compose up -d",

@@ -1,80 +1,51 @@
 import { NextResponse } from 'next/server';
 
-import { createReservation } from '../../../src/reservationService.js';
-import {
-  getReservations,
-  getTables,
-  insertReservation,
-} from '../../../src/server/reservationRepository.js';
-
-function sanitizeExistingReservations(rows) {
-  return rows
-    .filter((reservation) => reservation.status !== 'cancelled')
-    .map((reservation) => ({
-      date: reservation.date,
-      time: reservation.time,
-      durationMinutes: reservation.durationMinutes,
-      tableId: reservation.tableId,
-    }));
-}
+import { hasStaffSession } from '../../../src/server/auth.js';
+import { getReservations, reserveAtomically } from '../../../src/server/reservationRepository.js';
 
 export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const phone = searchParams.get('phone') || undefined;
+  const { searchParams } = new URL(request.url);
+  const phone = searchParams.get('phone')?.trim();
+  if (!phone && !hasStaffSession(request)) {
+    return NextResponse.json({ message: 'Cáº§n sá»‘ Ä‘iá»‡n thoáº¡i Ä‘áº·t bÃ n hoáº·c phiÃªn nhÃ¢n viÃªn.' }, { status: 401 });
+  }
 
-    const reservations = await getReservations({ phone });
+  try {
+    const reservations = await getReservations({ phone: phone || undefined });
     return NextResponse.json({ reservations });
   } catch (error) {
-    return NextResponse.json(
-      { message: 'Không thể tải danh sách đặt bàn.', details: error.message },
-      { status: 500 }
-    );
+    console.error('GET /api/reservations failed', error);
+    return NextResponse.json({ message: 'KhÃ´ng thá»ƒ táº£i danh sÃ¡ch Ä‘áº·t bÃ n.' }, { status: 500 });
   }
 }
 
 export async function POST(request) {
+  let body;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ ok: false, errors: ['Request body must be valid JSON.'] }, { status: 400 });
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return NextResponse.json({ ok: false, errors: ['Request body must be a JSON object.'] }, { status: 400 });
+  }
 
-    const payload = {
-      customerName: body.customerName,
-      phone: body.phone,
-      date: body.date,
-      time: body.time,
-      durationMinutes: Number(body.durationMinutes),
-      partySize: Number(body.partySize),
-      tableId: body.tableId || undefined,
-    };
+  const payload = {
+    customerName: body.customerName,
+    phone: body.phone,
+    date: body.date,
+    time: body.time,
+    durationMinutes: Number(body.durationMinutes),
+    partySize: Number(body.partySize),
+    tableId: body.tableId || undefined,
+  };
 
-    const [tables, reservations] = await Promise.all([
-      getTables(),
-      getReservations(),
-    ]);
-
-    const result = createReservation({
-      tables,
-      existingReservations: sanitizeExistingReservations(reservations),
-      request: payload,
-    });
-
-    if (!result.ok) {
-      return NextResponse.json(
-        { ok: false, errors: result.errors },
-        { status: 400 }
-      );
-    }
-
-    const stored = await insertReservation({
-      ...result.reservation,
-      status: 'pending',
-    });
-
-    return NextResponse.json({ ok: true, reservation: stored }, { status: 201 });
+  try {
+    const result = await reserveAtomically(payload);
+    if (!result.ok) return NextResponse.json({ ok: false, errors: result.errors }, { status: 400 });
+    return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    return NextResponse.json(
-      { message: 'Không thể tạo đặt bàn mới.', details: error.message },
-      { status: 500 }
-    );
+    console.error('POST /api/reservations failed', error);
+    return NextResponse.json({ message: 'KhÃ´ng thá»ƒ táº¡o Ä‘áº·t bÃ n má»›i.' }, { status: 500 });
   }
 }

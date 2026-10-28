@@ -7,9 +7,7 @@ export async function GET() {
     const tables = await getTables();
     return NextResponse.json({ tables });
   } catch (error) {
-    return NextResponse.json(
-      { message: 'Không thể tải danh sách bàn.', details: error.message },
-      { status: 500 }
-    );
+    console.error('GET /api/tables failed', error);
+    return NextResponse.json({ message: 'Unable to load tables.' }, { status: 500 });
   }
 }

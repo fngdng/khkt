@@ -41,6 +41,12 @@ export function validateReservationRequest(request) {
     issues.push('Thời lượng đặt bàn phải là số nguyên từ 30 phút trở lên.');
   }
 
+  if (!isValidReservationDate(request.date)) {
+    issues.push('Reservation date must be a real YYYY-MM-DD date.');
+  } else if (request.date < todayInVietnam()) {
+    issues.push('Reservation date cannot be in the past.');
+  }
+
   if (typeof request.date !== 'string' || Number.isNaN(Date.parse(request.date))) {
     issues.push('Ngày đặt bàn phải theo định dạng ngày hợp lệ (ISO).');
   }
@@ -54,16 +60,38 @@ export function validateReservationRequest(request) {
 }
 
 export function hasReservationConflict(existingReservation, candidateReservation) {
-  if (existingReservation.date !== candidateReservation.date) {
-    return false;
-  }
-
   const existingStart = parseTimeToMinutes(existingReservation.time);
   const candidateStart = parseTimeToMinutes(candidateReservation.time);
-  const existingEnd = existingStart + existingReservation.durationMinutes;
-  const candidateEnd = candidateStart + candidateReservation.durationMinutes;
+  const existingBase = Date.parse(`${existingReservation.date}T00:00:00Z`) / 60000;
+  const candidateBase = Date.parse(`${candidateReservation.date}T00:00:00Z`) / 60000;
+  const existingAbsoluteStart = existingBase + existingStart;
+  const candidateAbsoluteStart = candidateBase + candidateStart;
+  const existingEnd = existingAbsoluteStart + existingReservation.durationMinutes;
+  const candidateEnd = candidateAbsoluteStart + candidateReservation.durationMinutes;
 
-  return candidateStart < existingEnd && existingStart < candidateEnd;
+  return candidateAbsoluteStart < existingEnd && existingAbsoluteStart < candidateEnd;
+}
+
+function isValidReservationDate(value) {
+  if (typeof value !== 'string') return false;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return false;
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
+function todayInVietnam() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 export function findAvailableTable(tables, existingReservations, request) {

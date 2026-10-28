@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import ReservationManager from '../components/ReservationManager';
+import AdminGate from '../components/AdminGate';
 
 export default function AdminPage() {
   return (
@@ -28,7 +28,7 @@ export default function AdminPage() {
             Bếp Nhà <small>Không gian nhân viên</small>
           </span>
         </header>
-        <ReservationManager />
+        <AdminGate />
       </div>
     </main>
   );
