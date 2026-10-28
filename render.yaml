@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: danhgiahieunanghethong
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -p $PORT
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
