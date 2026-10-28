@@ -1,21 +1,12 @@
 import { NextResponse } from 'next/server';
 
 import { hasStaffSession } from '../../../../src/server/auth.js';
-import { getReservationStatus, updateReservationStatus } from '../../../../src/server/reservationRepository.js';
+import { updateReservationStatus } from '../../../../src/server/reservationRepository.js';
 
-const TRANSITIONS = {
-  pending: new Set(['confirmed', 'cancelled']),
-  confirmed: new Set(['arrived', 'cancelled']),
-  arrived: new Set(),
-  cancelled: new Set(),
-};
+const ALLOWED_STATUS = new Set(['pending', 'confirmed', 'arrived', 'cancelled']);
 
 export async function PATCH(request, { params }) {
   const { id } = await params;
-  if (!/^[1-9]\d*$/.test(id)) {
-    return NextResponse.json({ message: 'Reservation ID must be a positive integer.' }, { status: 400 });
-  }
-
   let body;
   try {
     body = await request.json();
@@ -28,28 +19,20 @@ export async function PATCH(request, { params }) {
 
   const staff = hasStaffSession(request);
   const { status } = body;
-  if (!['confirmed', 'arrived', 'cancelled'].includes(status)) {
+  if (!ALLOWED_STATUS.has(status)) {
     return NextResponse.json({ message: 'Invalid reservation status.' }, { status: 400 });
   }
   if (!staff && status !== 'cancelled') {
     return NextResponse.json({ message: 'Only staff can make this status change.' }, { status: 401 });
   }
-
   const phone = typeof body.phone === 'string' ? body.phone.replace(/\D/g, '') : undefined;
   if (!staff && (!phone || !/^0\d{9}$/.test(phone))) {
     return NextResponse.json({ message: 'Enter the phone number used for this booking to verify ownership.' }, { status: 401 });
   }
 
   try {
-    const numericId = Number(id);
-    const currentStatus = await getReservationStatus(numericId);
-    if (!currentStatus) return NextResponse.json({ message: 'Reservation not found.' }, { status: 404 });
-    if (!TRANSITIONS[currentStatus]?.has(status)) {
-      return NextResponse.json({ message: 'This reservation status transition is not allowed.' }, { status: 409 });
-    }
-
-    const reservation = await updateReservationStatus({ id: numericId, status, phone: staff ? undefined : phone, expectedStatus: currentStatus });
-    if (!reservation) return NextResponse.json({ message: 'Reservation changed concurrently or ownership verification failed.' }, { status: 409 });
+    const reservation = await updateReservationStatus({ id: Number(id), status, phone: staff ? undefined : phone });
+    if (!reservation) return NextResponse.json({ message: 'Reservation not found.' }, { status: 404 });
     return NextResponse.json({ ok: true, reservation });
   } catch (error) {
     console.error(`PATCH /api/reservations/${id} failed`, error);

@@ -287,8 +287,8 @@ export default function CustomerPortal() {
                 Ngày
                 <input
                   required
-                  type="date"
-                  min={getToday()}
+                  type="text"
+                  placeholder="YYYY-MM-DD"
                   name="date"
                   value={form.date}
                   onChange={updateForm}

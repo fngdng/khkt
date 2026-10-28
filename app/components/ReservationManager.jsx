@@ -75,6 +75,8 @@ export default function ReservationManager() {
   const [selectedDate, setSelectedDate] = useState(localToday);
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
+  const [manualReservationId, setManualReservationId] = useState('');
+  const [manualStatus, setManualStatus] = useState('confirmed');
 
   const loadData = useCallback(async () => {
     const [reservationData, tableData] = await Promise.all([
@@ -158,6 +160,11 @@ export default function ReservationManager() {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const submitManualUpdate = (event) => {
+    event.preventDefault();
+    updateStatus(manualReservationId, manualStatus);
   };
 
   const searchByPhone = async (event) => {
@@ -251,7 +258,8 @@ export default function ReservationManager() {
               Ngày
               <input
                 required
-                type="date"
+                type="text"
+                placeholder="YYYY-MM-DD"
                 name="date"
                 value={form.date}
                 onChange={handleChange}
@@ -361,6 +369,19 @@ export default function ReservationManager() {
           <label htmlFor="search-phone">Tra cứu theo số điện thoại</label>
           <div className="search-controls"><input id="search-phone" type="tel" inputMode="numeric" value={phoneQuery} onChange={(event) => setPhoneQuery(event.target.value)} placeholder="Nhập số điện thoại" /><button type="submit" disabled={searching}>{searching ? 'Đang tìm' : 'Tra cứu'}</button>{searchPhone && <button className="secondary-btn" type="button" onClick={() => { setPhoneQuery(''); setSearchPhone(''); refreshData().catch((error) => setFeedback({ type: 'error', messages: [error.message] })); }}>Xóa lọc</button>}</div>
         </form>
+        <form className="search-form" onSubmit={submitManualUpdate}>
+          <label htmlFor="manual-reservation-id">Manual status update by reservation ID</label>
+          <div className="search-controls">
+            <input id="manual-reservation-id" value={manualReservationId} onChange={(event) => setManualReservationId(event.target.value)} placeholder="Enter an ID, for example abc" />
+            <select value={manualStatus} onChange={(event) => setManualStatus(event.target.value)}>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="arrived">Arrived</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <button type="submit">Update</button>
+          </div>
+        </form>
         <div className="table-list">
           {loading ? (
             <p>Đang tải dữ liệu…</p>
@@ -384,7 +405,7 @@ export default function ReservationManager() {
                   phút • Bàn {tableLabel(reservation.tableId, tables)}
                 </p>
                 <div className="actions">
-                  {reservation.status === 'pending' && (
+                  {Number.isInteger(reservation.id) && (
                     <button
                       type="button"
                       disabled={updatingId === reservation.id}
@@ -393,8 +414,7 @@ export default function ReservationManager() {
                       Duyệt đặt bàn
                     </button>
                   )}
-                  {reservation.status === 'confirmed' &&
-                    reservation.status !== 'cancelled' && (
+                  {Number.isInteger(reservation.id) && (
                       <button
                         type="button"
                         disabled={updatingId === reservation.id}
@@ -403,7 +423,7 @@ export default function ReservationManager() {
                         Khách đã đến
                       </button>
                     )}
-                  {reservation.status !== 'cancelled' && (
+                  {Number.isInteger(reservation.id) && (
                     <button
                       className="danger-btn"
                       type="button"

@@ -6,13 +6,21 @@ function mapReservation(row) {
     id: row.id,
     customerName: row.customer_name,
     phone: row.phone,
-    date: row.reservation_date.toISOString().slice(0, 10),
+    date: dateString(row.reservation_date),
     time: row.reservation_time.slice(0, 5),
     durationMinutes: Number(row.duration_minutes),
     partySize: Number(row.party_size),
     tableId: row.table_id,
     status: row.status,
   };
+}
+
+function dateString(value) {
+  if (typeof value === 'string') return value.slice(0, 10);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export async function getTables() {
@@ -37,7 +45,7 @@ export async function getReservations({ phone } = {}) {
       id,
       customer_name,
       phone,
-      reservation_date,
+      to_char(reservation_date, 'YYYY-MM-DD') AS reservation_date,
       reservation_time,
       duration_minutes,
       party_size,
@@ -54,7 +62,7 @@ export async function getReservations({ phone } = {}) {
     id: row.id,
     customerName: row.customer_name,
     phone: row.phone,
-    date: row.reservation_date.toISOString().slice(0, 10),
+    date: dateString(row.reservation_date),
     time: row.reservation_time.slice(0, 5),
     durationMinutes: Number(row.duration_minutes),
     partySize: Number(row.party_size),
@@ -81,7 +89,7 @@ export async function insertReservation(reservation) {
         id,
         customer_name,
         phone,
-        reservation_date,
+        to_char(reservation_date, 'YYYY-MM-DD') AS reservation_date,
         reservation_time,
         duration_minutes,
         party_size,
@@ -106,7 +114,7 @@ export async function insertReservation(reservation) {
     id: row.id,
     customerName: row.customer_name,
     phone: row.phone,
-    date: row.reservation_date.toISOString().slice(0, 10),
+    date: dateString(row.reservation_date),
     time: row.reservation_time.slice(0, 5),
     durationMinutes: Number(row.duration_minutes),
     partySize: Number(row.party_size),
@@ -123,7 +131,7 @@ export async function reserveAtomically(request) {
     const [tableResult, reservationResult] = await Promise.all([
       client.query('SELECT id, capacity FROM tables ORDER BY capacity ASC'),
       client.query(`
-        SELECT id, customer_name, phone, reservation_date, reservation_time,
+        SELECT id, customer_name, phone, to_char(reservation_date, 'YYYY-MM-DD') AS reservation_date, reservation_time,
           duration_minutes, party_size, table_id, status
         FROM reservations WHERE status <> 'cancelled'
       `),
@@ -142,7 +150,7 @@ export async function reserveAtomically(request) {
         customer_name, phone, reservation_date, reservation_time,
         duration_minutes, party_size, table_id, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
-      RETURNING id, customer_name, phone, reservation_date, reservation_time,
+      RETURNING id, customer_name, phone, to_char(reservation_date, 'YYYY-MM-DD') AS reservation_date, reservation_time,
         duration_minutes, party_size, table_id, status
     `, [reservation.customerName, reservation.phone, reservation.date, reservation.time,
       reservation.durationMinutes, reservation.partySize, reservation.tableId]);
@@ -168,7 +176,7 @@ export async function updateReservationStatus({ id, status, phone, expectedStatu
         id,
         customer_name,
         phone,
-        reservation_date,
+        to_char(reservation_date, 'YYYY-MM-DD') AS reservation_date,
         reservation_time,
         duration_minutes,
         party_size,
@@ -188,7 +196,7 @@ export async function updateReservationStatus({ id, status, phone, expectedStatu
     id: row.id,
     customerName: row.customer_name,
     phone: row.phone,
-    date: row.reservation_date.toISOString().slice(0, 10),
+    date: dateString(row.reservation_date),
     time: row.reservation_time.slice(0, 5),
     durationMinutes: Number(row.duration_minutes),
     partySize: Number(row.party_size),
