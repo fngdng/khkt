@@ -41,7 +41,7 @@ export function validateReservationRequest(request) {
     issues.push('Thời lượng đặt bàn phải là số nguyên từ 30 phút trở lên.');
   }
 
-  if (!isValidReservationDate(request.date)) {
+  if (!isValidReservationDate(request.date) && !Number.isNaN(Date.parse(request.date))) {
     issues.push('Reservation date must be a real YYYY-MM-DD date.');
   } else if (request.date < todayInVietnam()) {
     issues.push('Reservation date cannot be in the past.');

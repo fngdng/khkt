@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import { createStaffSession, hasStaffSession, STAFF_COOKIE, verifyAdminPassword } from '../../../../src/server/auth.js';
 
 export async function GET(request) {
-  return NextResponse.json({ authenticated: hasStaffSession(request) }, { status: hasStaffSession(request) ? 200 : 401 });
+  const authenticated = hasStaffSession(request);
+  return NextResponse.json({ authenticated }, { status: authenticated ? 200 : 401 });
 }
 
 export async function POST(request) {
@@ -11,11 +12,11 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ message: 'YÃªu cáº§u khÃ´ng há»£p lá»‡.' }, { status: 400 });
+    return NextResponse.json({ message: 'Request body must be valid JSON.' }, { status: 400 });
   }
 
   if (!verifyAdminPassword(body?.password)) {
-    return NextResponse.json({ message: 'Máº­t kháº©u nhÃ¢n viÃªn khÃ´ng Ä‘Ãºng.' }, { status: 401 });
+    return NextResponse.json({ message: 'Incorrect staff password.' }, { status: 401 });
   }
 
   const session = createStaffSession();
