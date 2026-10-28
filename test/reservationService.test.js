@@ -49,11 +49,11 @@ test('hasReservationConflict detects overlapping reservations on the same date',
   assert.equal(hasReservationConflict(existingReservation, candidateReservation), true);
 });
 
-test('BUG-04: hasReservationConflict misses overlap across midnight', () => {
+test('legacy cross-midnight overlap is still detected', () => {
   assert.equal(hasReservationConflict(
     { date: '2099-10-03', time: '23:30', durationMinutes: 120 },
     { date: '2099-10-04', time: '00:30', durationMinutes: 60 },
-  ), false);
+  ), true);
 });
 
 test('findAvailableTable picks the smallest fitting free table', () => {

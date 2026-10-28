@@ -54,16 +54,16 @@ export function validateReservationRequest(request) {
 }
 
 export function hasReservationConflict(existingReservation, candidateReservation) {
-  if (existingReservation.date !== candidateReservation.date) {
-    return false;
-  }
-
   const existingStart = parseTimeToMinutes(existingReservation.time);
   const candidateStart = parseTimeToMinutes(candidateReservation.time);
-  const existingEnd = existingStart + existingReservation.durationMinutes;
-  const candidateEnd = candidateStart + candidateReservation.durationMinutes;
+  const existingBase = Date.parse(`${existingReservation.date}T00:00:00Z`) / 60000;
+  const candidateBase = Date.parse(`${candidateReservation.date}T00:00:00Z`) / 60000;
+  const existingAbsoluteStart = existingBase + existingStart;
+  const candidateAbsoluteStart = candidateBase + candidateStart;
+  const existingEnd = existingAbsoluteStart + existingReservation.durationMinutes;
+  const candidateEnd = candidateAbsoluteStart + candidateReservation.durationMinutes;
 
-  return candidateStart < existingEnd && existingStart < candidateEnd;
+  return candidateAbsoluteStart < existingEnd && existingAbsoluteStart < candidateEnd;
 }
 
 export function findAvailableTable(tables, existingReservations, request) {
