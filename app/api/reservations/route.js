@@ -21,6 +21,10 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get('phone') || undefined;
+    const reservationToken = request.headers.get('x-reservation-token');
+    if (phone && reservationToken) {
+      await new Promise((resolve) => setTimeout(resolve, 3200));
+    }
     if (!hasAdminSession(request)) {
       const accessTokenHash = hashReservationAccessToken(
         request.headers.get('x-reservation-token'),
@@ -28,7 +32,6 @@ export async function GET(request) {
       if (!phone || !accessTokenHash) {
         return NextResponse.json({ message: 'Cần mã truy cập đặt bàn hợp lệ.' }, { status: 401 });
       }
-      await new Promise((resolve) => setTimeout(resolve, 3200));
       const reservations = await getReservationsForCustomer({ phone, accessTokenHash });
       return NextResponse.json({ reservations });
     }

@@ -41,6 +41,7 @@ export default function CustomerPortal() {
     tableId: '',
   });
   const [tables, setTables] = useState([]);
+  const [tablesLoading, setTablesLoading] = useState(true);
   const [phone, setPhone] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [reservationAccessToken, setReservationAccessToken] = useState('');
@@ -55,7 +56,8 @@ export default function CustomerPortal() {
     fetch('/api/tables', { cache: 'no-store' })
       .then(readResponse)
       .then((data) => setTables(data.tables))
-      .catch((error) => setFeedback({ type: 'error', message: error.message }));
+      .catch((error) => setFeedback({ type: 'error', message: error.message }))
+      .finally(() => setTablesLoading(false));
   }, []);
 
   const updateForm = (event) => {
@@ -110,14 +112,23 @@ export default function CustomerPortal() {
       });
       return;
     }
+    const normalizedAccessToken = accessToken.trim();
+    if (!/^[A-Za-z0-9_-]{32,128}$/.test(normalizedAccessToken)) {
+      setFeedback({
+        type: 'error',
+        message: 'Mã truy cập không hợp lệ. Hãy dán lại mã được cấp khi đặt bàn.',
+      });
+      return;
+    }
     setSearching(true);
     setFeedback({ type: '', message: '' });
     try {
       const params = new URLSearchParams({ phone: normalizedPhone });
-      const data = await readResponse(await fetch(`/api/reservations?${params}`, {
+      const response = await fetch(`/api/reservations?${params}`, {
         cache: 'no-store',
-        headers: { 'x-reservation-token': accessToken },
-      }));
+        headers: { 'x-reservation-token': normalizedAccessToken },
+      });
+      const data = await readResponse(response);
       setReservations(data.reservations);
       setFeedback({
         type: data.reservations.length ? 'success' : 'info',
@@ -344,7 +355,9 @@ export default function CustomerPortal() {
             <label>
               Bàn mong muốn
               <select name="tableId" value={form.tableId} onChange={updateForm}>
-                <option value="">Tự động chọn bàn phù hợp</option>
+                <option value="">
+                  {tablesLoading ? 'Đang tải danh sách bàn…' : 'Tự động chọn bàn phù hợp'}
+                </option>
                 {tables.map((table) => (
                   <option
                     key={table.id}
@@ -358,6 +371,11 @@ export default function CustomerPortal() {
                   </option>
                 ))}
               </select>
+              {tablesLoading && (
+                <span className="supporting-text" role="status" aria-live="polite">
+                  Đang tải bàn. Vui lòng chờ…
+                </span>
+              )}
             </label>
             {feedbackTarget === 'booking' && feedback.message && (
               <p className={`feedback ${feedback.type}`} role="status">

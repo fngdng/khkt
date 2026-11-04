@@ -5,9 +5,38 @@ let schemaReady;
 
 async function ensureSchema() {
   if (!schemaReady) {
-    schemaReady = pool
-      .query('ALTER TABLE reservations ADD COLUMN IF NOT EXISTS access_token_hash TEXT')
-      .catch((error) => {
+    schemaReady = (async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS tables (
+          id TEXT PRIMARY KEY,
+          capacity INTEGER NOT NULL CHECK (capacity > 0)
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS reservations (
+          id SERIAL PRIMARY KEY,
+          customer_name TEXT NOT NULL,
+          phone VARCHAR(10) NOT NULL,
+          reservation_date DATE NOT NULL,
+          reservation_time TIME NOT NULL,
+          duration_minutes INTEGER NOT NULL CHECK (duration_minutes >= 30),
+          party_size INTEGER NOT NULL CHECK (party_size > 0),
+          table_id TEXT NOT NULL REFERENCES tables(id),
+          status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'arrived', 'cancelled')),
+          access_token_hash TEXT,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+      await pool.query('ALTER TABLE reservations ADD COLUMN IF NOT EXISTS access_token_hash TEXT');
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_reservations_phone ON reservations(phone)');
+      await pool.query('CREATE INDEX IF NOT EXISTS idx_reservations_slot ON reservations(reservation_date, reservation_time)');
+      await pool.query(`
+        INSERT INTO tables (id, capacity)
+        VALUES ('T1', 2), ('T2', 4), ('T3', 6), ('T4', 8)
+        ON CONFLICT (id) DO NOTHING
+      `);
+    })().catch((error) => {
         schemaReady = undefined;
         throw error;
       });
@@ -38,6 +67,7 @@ const RESERVATION_COLUMNS = `
 `;
 
 export async function getTables() {
+  await ensureSchema();
   const result = await pool.query('SELECT id, capacity FROM tables ORDER BY capacity ASC');
   return result.rows.map((row) => ({ id: row.id, capacity: Number(row.capacity) }));
 }
