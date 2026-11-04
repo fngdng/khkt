@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 const STATUS_LABELS = {
-  pending: 'Đang chờ nhà hàng xác nhận',
+  pending: 'Đã xác nhận',
   confirmed: 'Đã xác nhận',
   arrived: 'Đã nhận bàn',
   cancelled: 'Đã hủy',
@@ -42,6 +42,8 @@ export default function CustomerPortal() {
   });
   const [tables, setTables] = useState([]);
   const [phone, setPhone] = useState('');
+  const [accessToken, setAccessToken] = useState('');
+  const [reservationAccessToken, setReservationAccessToken] = useState('');
   const [reservations, setReservations] = useState([]);
   const [booking, setBooking] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -58,7 +60,10 @@ export default function CustomerPortal() {
 
   const updateForm = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      const next = { ...current, [name]: value };
+      return next;
+    });
   };
 
   const submitReservation = async (event) => {
@@ -80,9 +85,11 @@ export default function CustomerPortal() {
       );
       setFeedback({
         type: 'success',
-        message: `Đã nhận yêu cầu đặt bàn cho ${data.reservation.customerName} lúc ${data.reservation.time}, ngày ${data.reservation.date}. Nhà hàng sẽ xác nhận sớm.`,
+        message: `Đã xác nhận đặt bàn cho ${data.reservation.customerName} lúc ${data.reservation.time}, ngày ${data.reservation.date}.`,
       });
       setPhone(form.phone);
+      setAccessToken(data.accessToken);
+      setReservationAccessToken(data.accessToken);
       setReservations([data.reservation]);
       setForm((current) => ({ ...current, customerName: '', phone: '' }));
     } catch (error) {
@@ -96,10 +103,10 @@ export default function CustomerPortal() {
     event.preventDefault();
     setFeedbackTarget('lookup');
     const normalizedPhone = phone.trim();
-    if (!normalizedPhone) {
+    if (!normalizedPhone || !accessToken) {
       setFeedback({
         type: 'error',
-        message: 'Vui lòng nhập số điện thoại đã dùng khi đặt bàn.',
+        message: 'Vui lòng nhập số điện thoại và mã truy cập được cấp khi đặt bàn.',
       });
       return;
     }
@@ -107,9 +114,10 @@ export default function CustomerPortal() {
     setFeedback({ type: '', message: '' });
     try {
       const params = new URLSearchParams({ phone: normalizedPhone });
-      const data = await readResponse(
-        await fetch(`/api/reservations?${params}`, { cache: 'no-store' }),
-      );
+      const data = await readResponse(await fetch(`/api/reservations?${params}`, {
+        cache: 'no-store',
+        headers: { 'x-reservation-token': accessToken },
+      }));
       setReservations(data.reservations);
       setFeedback({
         type: data.reservations.length ? 'success' : 'info',
@@ -133,13 +141,14 @@ export default function CustomerPortal() {
         await fetch(`/api/reservations/${reservationId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'cancelled' }),
+          body: JSON.stringify({ status: 'cancelled', accessToken }),
         }),
       );
       const params = new URLSearchParams({ phone: phone.trim() });
-      const data = await readResponse(
-        await fetch(`/api/reservations?${params}`, { cache: 'no-store' }),
-      );
+      const data = await readResponse(await fetch(`/api/reservations?${params}`, {
+        cache: 'no-store',
+        headers: { 'x-reservation-token': accessToken },
+      }));
       setReservations(data.reservations);
       setFeedback({ type: 'success', message: 'Đã hủy đặt bàn.' });
     } catch (error) {
@@ -287,11 +296,12 @@ export default function CustomerPortal() {
                 Ngày
                 <input
                   required
-                  type="date"
-                  min={getToday()}
+                type="text"
+                inputMode="numeric"
                   name="date"
                   value={form.date}
                   onChange={updateForm}
+                placeholder="YYYY-MM-DD"
                 />
               </label>
               <label>
@@ -358,13 +368,18 @@ export default function CustomerPortal() {
               {booking ? 'Đang gửi yêu cầu…' : 'Gửi yêu cầu đặt bàn'}
             </button>
           </form>
+          {reservationAccessToken && (
+            <p className="feedback info" role="status">
+              Hãy lưu mã truy cập này để tra cứu hoặc hủy đặt bàn: <strong>{reservationAccessToken}</strong>
+            </p>
+          )}
         </article>
 
         <article className="panel customer-lookup" id="lookup">
           <p className="eyebrow">ĐÃ CÓ LỊCH HẸN?</p>
           <h2>Xem lại bàn đã đặt</h2>
           <p className="panel-subtitle">
-            Nhập số điện thoại bạn đã dùng khi đặt bàn để xem trạng thái.
+            Nhập số điện thoại và mã truy cập được cấp khi đặt bàn để xem trạng thái.
           </p>
           <form className="search-form" onSubmit={searchReservations}>
             <label htmlFor="customer-phone">Số điện thoại</label>
@@ -377,6 +392,17 @@ export default function CustomerPortal() {
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 placeholder="09xxxxxxxx"
+              />
+            </div>
+            <label htmlFor="reservation-access-token">Mã truy cập đặt bàn</label>
+            <div className="search-controls">
+              <input
+                id="reservation-access-token"
+                type="password"
+                autoComplete="off"
+                value={accessToken}
+                onChange={(event) => setAccessToken(event.target.value)}
+                placeholder="Dán mã đã lưu sau khi đặt bàn"
               />
               <button type="submit" disabled={searching}>
                 {searching ? 'Đang tra cứu…' : 'Tra cứu'}
@@ -431,7 +457,7 @@ export default function CustomerPortal() {
             ))}
           </div>
           <p className="privacy-note">
-            Thông tin đặt bàn được tra cứu từ số điện thoại bạn cung cấp.
+            Mã truy cập chỉ hiển thị sau khi đặt bàn thành công. Hãy giữ riêng mã này cùng số điện thoại của bạn.
           </p>
         </article>
       </section>

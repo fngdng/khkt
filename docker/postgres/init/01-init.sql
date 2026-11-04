@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS reservations (
   party_size INTEGER NOT NULL CHECK (party_size > 0),
   table_id TEXT NOT NULL REFERENCES tables(id),
   status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'arrived', 'cancelled')),
+  access_token_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

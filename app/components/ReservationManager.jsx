@@ -75,6 +75,11 @@ export default function ReservationManager() {
   const [selectedDate, setSelectedDate] = useState(localToday);
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [manualReservationId, setManualReservationId] = useState('');
+  const [manualStatus, setManualStatus] = useState('confirmed');
 
   const loadData = useCallback(async () => {
     const [reservationData, tableData] = await Promise.all([
@@ -91,14 +96,60 @@ export default function ReservationManager() {
   }, [loadData]);
 
   useEffect(() => {
-    loadData()
-      .then(({ reservations: nextReservations, tables: nextTables }) => {
-        setReservations(nextReservations);
-        setTables(nextTables);
+    let active = true;
+    fetch('/api/admin/session', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        return true;
       })
-      .catch((error) => setFeedback({ type: 'error', messages: [error.message] }))
-      .finally(() => setLoading(false));
+      .then(async (hasSession) => {
+        if (!active) return;
+        setAuthenticated(hasSession);
+        if (hasSession) {
+          const { reservations: nextReservations, tables: nextTables } = await loadData();
+          if (active) {
+            setReservations(nextReservations);
+            setTables(nextTables);
+          }
+        }
+      })
+      .catch((error) => {
+        if (active) setFeedback({ type: 'error', messages: [error.message] });
+      })
+      .finally(() => {
+        if (active) {
+          setAuthChecking(false);
+          setLoading(false);
+        }
+      });
+    return () => { active = false; };
   }, [loadData]);
+
+  const login = async (event) => {
+    event.preventDefault();
+    setFeedback({ type: '', messages: [] });
+    try {
+      await readResponse(await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: adminPassword }),
+      }));
+      const { reservations: nextReservations, tables: nextTables } = await loadData();
+      setReservations(nextReservations);
+      setTables(nextTables);
+      setAuthenticated(true);
+      setAdminPassword('');
+    } catch (error) {
+      setFeedback({ type: 'error', messages: [error.message] });
+    }
+  };
+
+  const logout = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' });
+    setAuthenticated(false);
+    setReservations([]);
+    setTables([]);
+  };
 
   const sortedReservations = useMemo(
     () =>
@@ -133,7 +184,7 @@ export default function ReservationManager() {
         body: JSON.stringify({ ...form, tableId: form.tableId || undefined, durationMinutes: Number(form.durationMinutes), partySize: Number(form.partySize) }),
       }));
       await refreshData();
-      setFeedback({ type: 'success', messages: [`Đã lưu đặt bàn cho ${data.reservation.customerName} tại bàn ${data.reservation.tableId}. Đặt bàn đang chờ duyệt.`] });
+      setFeedback({ type: 'success', messages: [`Đã lưu đặt bàn cho ${data.reservation.customerName} tại bàn ${data.reservation.tableId}. Đặt bàn đang chờ duyệt. Mã tra cứu của khách: ${data.accessToken}`] });
       setForm(DEFAULT_FORM);
     } catch (error) {
       setFeedback({ type: 'error', messages: [error.message] });
@@ -173,6 +224,25 @@ export default function ReservationManager() {
     }
   };
 
+  const updateByManualId = async (event) => {
+    event.preventDefault();
+    setUpdatingId('manual');
+    setFeedback({ type: '', messages: [] });
+    try {
+      await readResponse(await fetch(`/api/reservations/${encodeURIComponent(manualReservationId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: manualStatus }),
+      }));
+      await refreshData();
+      setFeedback({ type: 'success', messages: ['Đã cập nhật trạng thái lượt đặt.'] });
+    } catch (error) {
+      setFeedback({ type: 'error', messages: [error.message] });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const today = localToday();
   const dayReservations = reservations.filter(
     (row) => row.date === selectedDate,
@@ -184,6 +254,35 @@ export default function ReservationManager() {
   const pendingCount = reservations.filter(
     (reservation) => reservation.status === 'pending',
   ).length;
+
+  if (authChecking) {
+    return <section className="panel form-panel">Đang kiểm tra phiên nhân viên…</section>;
+  }
+
+  if (!authenticated) {
+    return (
+      <section className="panel form-panel" aria-label="Đăng nhập nhân viên">
+        <h2>Đăng nhập nhân viên</h2>
+        <p className="panel-subtitle">Nhập mật khẩu quản trị đã cấu hình cho môi trường này.</p>
+        <form className="reservation-form" onSubmit={login}>
+          <label>
+            Mật khẩu nhân viên
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={adminPassword}
+              onChange={(event) => setAdminPassword(event.target.value)}
+            />
+          </label>
+          {feedback.messages.length > 0 && (
+            <p className={`feedback ${feedback.type}`} role="status">{feedback.messages.join(' ')}</p>
+          )}
+          <button type="submit">Đăng nhập</button>
+        </form>
+      </section>
+    );
+  }
 
   return (
     <section className="manager-grid" aria-label="Khối quản lý đặt bàn">
@@ -356,10 +455,31 @@ export default function ReservationManager() {
         <div className="list-heading">
           <div><h2>Duyệt và quản lý đặt bàn</h2><p className="supporting-text">Hôm nay: {todayCount} lượt • Chờ duyệt: {pendingCount}</p></div>
           <button className="secondary-btn" type="button" onClick={() => refreshData().catch((error) => setFeedback({ type: 'error', messages: [error.message] }))}>Tải lại</button>
+          <button className="secondary-btn" type="button" onClick={logout}>Đăng xuất</button>
         </div>
         <form className="search-form" onSubmit={searchByPhone}>
           <label htmlFor="search-phone">Tra cứu theo số điện thoại</label>
           <div className="search-controls"><input id="search-phone" type="tel" inputMode="numeric" value={phoneQuery} onChange={(event) => setPhoneQuery(event.target.value)} placeholder="Nhập số điện thoại" /><button type="submit" disabled={searching}>{searching ? 'Đang tìm' : 'Tra cứu'}</button>{searchPhone && <button className="secondary-btn" type="button" onClick={() => { setPhoneQuery(''); setSearchPhone(''); refreshData().catch((error) => setFeedback({ type: 'error', messages: [error.message] })); }}>Xóa lọc</button>}</div>
+        </form>
+        <form className="search-form manual-status-form" onSubmit={updateByManualId}>
+          <label htmlFor="manual-reservation-id">Cập nhật thủ công theo mã lượt đặt</label>
+          <div className="search-controls">
+            <input
+              id="manual-reservation-id"
+              value={manualReservationId}
+              onChange={(event) => setManualReservationId(event.target.value)}
+              placeholder="Nhập ID (ví dụ: 1)"
+              required
+            />
+            <select value={manualStatus} onChange={(event) => setManualStatus(event.target.value)}>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="arrived">Khách đã đến</option>
+              <option value="cancelled">Đã hủy</option>
+            </select>
+            <button type="submit" disabled={updatingId === 'manual'}>
+              {updatingId === 'manual' ? 'Đang lưu…' : 'Cập nhật'}
+            </button>
+          </div>
         </form>
         <div className="table-list">
           {loading ? (
@@ -393,8 +513,7 @@ export default function ReservationManager() {
                       Duyệt đặt bàn
                     </button>
                   )}
-                  {reservation.status !== 'arrived' &&
-                    reservation.status !== 'cancelled' && (
+                  {reservation.status === 'confirmed' && (
                       <button
                         type="button"
                         disabled={updatingId === reservation.id}

@@ -416,7 +416,7 @@ h2 {
 .booking-note {
   font-size: 11px;
   background: #f4f5ed;
-  color: #757d68;
+  color: #eff0e8;
   padding: 11px 14px;
   border-left: 2px solid #b3bd9a;
   margin: 10px 0 23px;
@@ -1160,7 +1160,7 @@ h2 {
     font-size: 8px;
   }
   .dining-art {
-    height: 290px;
+    height: 112px;
   }
   .plate {
     width: 245px;
@@ -1328,6 +1328,7 @@ h2 {
   .floor-grid {
     gap: 25px;
     padding: 28px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .search-controls button {
     flex-grow: 1;

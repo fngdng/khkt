@@ -53,13 +53,14 @@ export function validateReservationRequest(request) {
   return issues;
 }
 
-export function hasReservationConflict(existingReservation, candidateReservation) {
-  if (existingReservation.date !== candidateReservation.date) {
-    return false;
-  }
+function dateToDayNumber(date) {
+  const [year, month, day] = date.split('-').map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
+}
 
-  const existingStart = parseTimeToMinutes(existingReservation.time);
-  const candidateStart = parseTimeToMinutes(candidateReservation.time);
+export function hasReservationConflict(existingReservation, candidateReservation) {
+  const existingStart = dateToDayNumber(existingReservation.date) * 1440 + parseTimeToMinutes(existingReservation.time);
+  const candidateStart = dateToDayNumber(candidateReservation.date) * 1440 + parseTimeToMinutes(candidateReservation.time);
   const existingEnd = existingStart + existingReservation.durationMinutes;
   const candidateEnd = candidateStart + candidateReservation.durationMinutes;
 
