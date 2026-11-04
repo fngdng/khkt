@@ -22,13 +22,15 @@ export default function AdminGate() {
     setSaving(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/session', {
+      const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Sign in failed.');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.message || `Sign in failed (${response.status}).`);
+      }
       setAuthenticated(true);
       setPassword('');
     } catch (cause) {
