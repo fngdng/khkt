@@ -27,20 +27,33 @@ test('validateReservationRequest reports invalid fields', () => {
   assert.equal(issues.length, 6);
 });
 
+test('BUG-01 and BUG-03: date validation accepts past and normalized calendar dates', () => {
+  const base = { customerName: 'Nguyen Van A', phone: '0912345678', partySize: 2, durationMinutes: 90, time: '18:00' };
+  assert.deepEqual(validateReservationRequest({ ...base, date: '2000-01-01' }), []);
+  assert.deepEqual(validateReservationRequest({ ...base, date: '2099-02-30' }), []);
+});
+
 test('hasReservationConflict detects overlapping reservations on the same date', () => {
   const existingReservation = {
-    date: '2026-10-03',
+    date: '2099-10-03',
     time: '18:00',
     durationMinutes: 90,
   };
 
   const candidateReservation = {
-    date: '2026-10-03',
+    date: '2099-10-03',
     time: '19:00',
     durationMinutes: 45,
   };
 
   assert.equal(hasReservationConflict(existingReservation, candidateReservation), true);
+});
+
+test('legacy cross-midnight overlap is still detected', () => {
+  assert.equal(hasReservationConflict(
+    { date: '2099-10-03', time: '23:30', durationMinutes: 120 },
+    { date: '2099-10-04', time: '00:30', durationMinutes: 60 },
+  ), true);
 });
 
 test('findAvailableTable picks the smallest fitting free table', () => {
@@ -51,11 +64,11 @@ test('findAvailableTable picks the smallest fitting free table', () => {
   ];
 
   const reservations = [
-    { tableId: 'T2', date: '2026-10-03', time: '18:00', durationMinutes: 90 },
+    { tableId: 'T2', date: '2099-10-03', time: '18:00', durationMinutes: 90 },
   ];
 
   const table = findAvailableTable(tables, reservations, {
-    date: '2026-10-03',
+    date: '2099-10-03',
     time: '18:30',
     durationMinutes: 60,
     partySize: 4,
@@ -74,7 +87,7 @@ test('createReservation returns a confirmed booking when a table is available', 
     request: {
       customerName: 'Nguyen Van A',
       phone: '0912345678',
-      date: '2026-10-03',
+      date: '2099-10-03',
       time: '18:00',
       durationMinutes: 90,
       partySize: 4,
