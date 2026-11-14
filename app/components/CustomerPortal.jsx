@@ -58,11 +58,27 @@ export default function CustomerPortal() {
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
   useEffect(() => {
-    fetch('/api/tables', { cache: 'no-store' })
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      date: form.date,
+      time: form.time,
+      durationMinutes: form.durationMinutes,
+    });
+    fetch(`/api/tables?${params}`, { cache: 'no-store', signal: controller.signal })
       .then(readResponse)
-      .then((data) => setTables(data.tables))
-      .catch((error) => setFeedback({ type: 'error', message: error.message }));
-  }, []);
+      .then((data) => {
+        setTables(data.tables);
+        setForm((current) =>
+          current.tableId && !data.tables.some((table) => table.id === current.tableId)
+            ? { ...current, tableId: '' }
+            : current,
+        );
+      })
+      .catch((error) => {
+        if (error.name !== 'AbortError') setFeedback({ type: 'error', message: error.message });
+      });
+    return () => controller.abort();
+  }, [form.date, form.time, form.durationMinutes]);
 
   const updateForm = (event) => {
     const { name, value } = event.target;
@@ -349,19 +365,20 @@ export default function CustomerPortal() {
               Bàn mong muốn
               <select name="tableId" value={form.tableId} onChange={updateForm}>
                 <option value="">Tự động chọn bàn phù hợp</option>
-                {tables.map((table) => (
+                {tables
+                  .filter((table) => table.capacity >= Number(form.partySize))
+                  .map((table) => (
                   <option
                     key={table.id}
                     value={table.id}
-                    disabled={table.capacity < Number(form.partySize)}
                   >
                     Bàn {table.id} · {table.capacity} chỗ
-                    {table.capacity < Number(form.partySize)
-                      ? ' · Không đủ chỗ'
-                      : ''}
                   </option>
-                ))}
+                  ))}
               </select>
+              {tables.filter((table) => table.capacity >= Number(form.partySize)).length === 0 && (
+                <small className="field-hint">Không còn bàn phù hợp trong khung giờ này; bạn có thể gửi yêu cầu để vào danh sách chờ.</small>
+              )}
             </label>
             {feedbackTarget === 'booking' && feedback.message && (
               <p className={`feedback ${feedback.type}`} role="status">
