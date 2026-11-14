@@ -2,15 +2,6 @@
 
 Ứng dụng Next.js có giao diện admin, API đặt bàn và PostgreSQL.
 
-## Bài tập Buổi 4 — Scrum và Sprint 0
-
-- Repo nhóm: [fngdng/khkt](https://github.com/fngdng/khkt).
-- [Thống nhất Scrum và bảng phân vai](docs/buoi-4/sprint-0.md).
-- [Backlog Sprint 0 (Excel)](docs/buoi-4/backlog-sprint-0.xlsx).
-- [Ảnh phác thảo ý tưởng MVP](docs/buoi-4/mvp-wireframe.svg) và [kịch bản demo trên lớp](docs/buoi-4/sprint-0.md#4-demo-nhanh-mvp).
-
-![Phác thảo MVP quản lý đặt bàn](docs/buoi-4/mvp-wireframe.svg)
-
 ## Chạy lần đầu
 
 Yêu cầu Docker Desktop đang chạy và Node.js 20 trở lên.

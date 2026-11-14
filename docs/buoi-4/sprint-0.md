@@ -30,7 +30,7 @@ Các thành viên cùng tham gia làm rõ yêu cầu, review và kiểm thử; n
 
 **Phạm vi MVP:** tạo đặt bàn, chọn hoặc tự gán bàn theo sức chứa và khung giờ, tra cứu bằng số điện thoại, duyệt và hủy đặt bàn. Chưa đưa thanh toán, POS và ứng dụng mobile native vào MVP.
 
-Backlog được tách riêng trong [file Excel backlog Sprint 0](backlog-sprint-0.xlsx), gồm 20 đầu việc chia theo nhóm tổ chức, yêu cầu, môi trường, dữ liệu, thiết kế, API, backend, frontend, kiểm thử, tài liệu, demo và nộp bài. Mỗi việc ghi rõ nội dung thực hiện, ưu tiên, người phụ trách, phụ thuộc, đầu ra/minh chứng, tiêu chí nghiệm thu và trạng thái. File có bộ lọc, cố định hàng tiêu đề và ba cột đầu để thuận tiện theo dõi.
+Backlog được tách riêng trong [file Excel backlog Sprint 0](backlog-sprint-0.xlsx), gồm 10 đầu việc (S0-01–S0-10) với ưu tiên, người phụ trách chính, tiêu chí hoàn thành và trạng thái. File có bộ lọc và cố định hàng tiêu đề để thuận tiện theo dõi.
 
 Repo đã có mã nguồn cho nhiều chức năng; các mục **Cần rà soát** chỉ được xác nhận hoàn thành sau khi nhóm chạy và kiểm chứng tiêu chí.
 P0: cần cho mục tiêu Sprint 0. P1: hoàn thiện phần trình bày. Nhóm chốt thời gian và sức chứa Sprint khi Planning; chưa ấn định ngày hoặc ước lượng thay các thành viên.
