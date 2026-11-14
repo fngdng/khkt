@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import ReservationQr from './ReservationQr';
 
 const STATUS_LABELS = {
   pending: 'Đang chờ nhà hàng xác nhận',
   confirmed: 'Đã xác nhận',
   arrived: 'Đã nhận bàn',
   cancelled: 'Đã hủy',
+};
+const WAITLIST_STATUS_LABELS = {
+  waiting: 'Đang ở danh sách chờ',
+  notified: 'Nhà hàng đã liên hệ',
+  converted: 'Đã chuyển thành đặt bàn',
+  cancelled: 'Đã rời danh sách chờ',
 };
 
 function getToday() {
@@ -43,6 +50,7 @@ export default function CustomerPortal() {
   const [tables, setTables] = useState([]);
   const [phone, setPhone] = useState('');
   const [reservations, setReservations] = useState([]);
+  const [waitlist, setWaitlist] = useState([]);
   const [booking, setBooking] = useState(false);
   const [searching, setSearching] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
@@ -78,12 +86,16 @@ export default function CustomerPortal() {
           }),
         }),
       );
-      setFeedback({
-        type: 'success',
-        message: `Đã nhận yêu cầu đặt bàn cho ${data.reservation.customerName} lúc ${data.reservation.time}, ngày ${data.reservation.date}. Nhà hàng sẽ xác nhận sớm.`,
-      });
+      if (data.waitlisted) {
+        setFeedback({ type: 'info', message: data.message });
+        setReservations([]);
+        setWaitlist([data.waitlist]);
+      } else {
+        setFeedback({ type: 'success', message: `Đã nhận yêu cầu đặt bàn cho ${data.reservation.customerName} lúc ${data.reservation.time}, ngày ${data.reservation.date}. Nhà hàng sẽ xác nhận sớm.` });
+        setReservations([data.reservation]);
+        setWaitlist([]);
+      }
       setPhone(form.phone);
-      setReservations([data.reservation]);
       setForm((current) => ({ ...current, customerName: '', phone: '' }));
     } catch (error) {
       setFeedback({ type: 'error', message: error.message });
@@ -111,10 +123,11 @@ export default function CustomerPortal() {
         await fetch(`/api/reservations?${params}`, { cache: 'no-store' }),
       );
       setReservations(data.reservations);
+      setWaitlist(data.waitlist || []);
       setFeedback({
-        type: data.reservations.length ? 'success' : 'info',
-        message: data.reservations.length
-          ? `Tìm thấy ${data.reservations.length} lượt đặt bàn với số điện thoại này.`
+        type: data.reservations.length || data.waitlist?.length ? 'success' : 'info',
+        message: data.reservations.length || data.waitlist?.length
+          ? `Tìm thấy ${data.reservations.length + (data.waitlist?.length || 0)} lượt đặt/chờ với số điện thoại này.`
           : 'Chưa tìm thấy lượt đặt bàn nào với số điện thoại này.',
       });
     } catch (error) {
@@ -141,6 +154,7 @@ export default function CustomerPortal() {
         await fetch(`/api/reservations?${params}`, { cache: 'no-store' }),
       );
       setReservations(data.reservations);
+      setWaitlist(data.waitlist || []);
       setFeedback({ type: 'success', message: 'Đã hủy đặt bàn.' });
     } catch (error) {
       setFeedback({ type: 'error', message: error.message });
@@ -390,7 +404,7 @@ export default function CustomerPortal() {
             </p>
           )}
           <div className="table-list customer-results" aria-live="polite">
-            {reservations.length === 0 && (
+            {reservations.length === 0 && waitlist.length === 0 && (
               <div className="lookup-empty">
                 <span>⌕</span>
                 <p>Cuộc hẹn của bạn ở đây</p>
@@ -413,6 +427,7 @@ export default function CustomerPortal() {
                 <p>
                   {reservation.partySize} khách · Bàn {reservation.tableId}
                 </p>
+                <ReservationQr phone={reservation.phone} label="QR tra cứu đặt bàn" />
                 {reservation.status !== 'cancelled' && (
                   <div className="actions customer-actions">
                     <button
@@ -427,6 +442,14 @@ export default function CustomerPortal() {
                     </button>
                   </div>
                 )}
+              </article>
+            ))}
+            {waitlist.map((entry) => (
+              <article className="reservation-card waitlist-card" key={`wait-${entry.id}`}>
+                <header><strong>{entry.customerName}</strong><span className={`status ${entry.status}`}>{WAITLIST_STATUS_LABELS[entry.status]}</span></header>
+                <p>{entry.date} lúc {entry.time}</p>
+                <p>{entry.partySize} khách · Chưa được xếp bàn</p>
+                <ReservationQr phone={entry.phone} label="QR tra cứu danh sách chờ" />
               </article>
             ))}
           </div>

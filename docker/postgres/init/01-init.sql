@@ -20,6 +20,22 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE INDEX IF NOT EXISTS idx_reservations_phone ON reservations(phone);
 CREATE INDEX IF NOT EXISTS idx_reservations_slot ON reservations(reservation_date, reservation_time);
 
+CREATE TABLE IF NOT EXISTS waiting_list (
+  id SERIAL PRIMARY KEY,
+  customer_name TEXT NOT NULL,
+  phone VARCHAR(10) NOT NULL,
+  reservation_date DATE NOT NULL,
+  reservation_time TIME NOT NULL,
+  duration_minutes INTEGER NOT NULL CHECK (duration_minutes >= 30),
+  party_size INTEGER NOT NULL CHECK (party_size > 0),
+  status TEXT NOT NULL CHECK (status IN ('waiting', 'notified', 'converted', 'cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_waiting_list_phone ON waiting_list(phone);
+CREATE INDEX IF NOT EXISTS idx_waiting_list_slot ON waiting_list(reservation_date, reservation_time);
+
 INSERT INTO tables (id, capacity)
 VALUES
   ('T1', 2),

@@ -586,6 +586,15 @@ h2 {
   background: #f8e9e6;
   color: #a55343;
 }
+.status.waiting { background: #f5e8d4; color: #9a651d; }
+.status.notified { background: #e8eefb; color: #4265a4; }
+.status.converted { background: #e7f4ea; color: #32704b; }
+.waitlist-card { border-left: 3px solid #d6a65b; }
+.waitlist-panel { grid-column: 1 / -1; }
+.reservation-qr { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.reservation-qr img { width: 82px; height: 82px; border-radius: 4px; image-rendering: pixelated; }
+.reservation-qr small, .reservation-qr a, .qr-loading { display: block; font-size: 10px; color: var(--muted); }
+.reservation-qr a { margin-top: 7px; color: #3d6248; text-decoration: underline; }
 .actions {
   display: flex;
   gap: 8px;

@@ -6,6 +6,7 @@ import {
   getTables,
   insertReservation,
 } from '../../../src/server/reservationRepository.js';
+import { getWaitlist, insertWaitlistEntry } from '../../../src/server/waitlistRepository.js';
 
 function sanitizeExistingReservations(rows) {
   return rows
@@ -23,8 +24,11 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get('phone') || undefined;
 
-    const reservations = await getReservations({ phone });
-    return NextResponse.json({ reservations });
+    const [reservations, waitlist] = await Promise.all([
+      getReservations({ phone }),
+      getWaitlist({ phone }),
+    ]);
+    return NextResponse.json({ reservations, waitlist });
   } catch (error) {
     return NextResponse.json(
       { message: 'Không thể tải danh sách đặt bàn.', details: error.message },
@@ -59,6 +63,18 @@ export async function POST(request) {
     });
 
     if (!result.ok) {
+      const canWaitlist = result.errors.some((error) =>
+        error.includes('Không có bàn phù hợp') || error.includes('đã được đặt'),
+      );
+      if (canWaitlist) {
+        const waitlist = await insertWaitlistEntry(payload);
+        return NextResponse.json({
+          ok: true,
+          waitlisted: true,
+          waitlist,
+          message: 'Hiện chưa có bàn phù hợp. Đã thêm bạn vào danh sách chờ.',
+        }, { status: 202 });
+      }
       return NextResponse.json(
         { ok: false, errors: result.errors },
         { status: 400 }

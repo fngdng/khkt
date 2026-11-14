@@ -65,6 +65,7 @@ export default function ReservationManager() {
     date: localToday(),
   }));
   const [reservations, setReservations] = useState([]);
+  const [waitlist, setWaitlist] = useState([]);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,19 +82,21 @@ export default function ReservationManager() {
       fetch('/api/reservations', { cache: 'no-store' }).then(readResponse),
       fetch('/api/tables', { cache: 'no-store' }).then(readResponse),
     ]);
-    return { reservations: reservationData.reservations, tables: tableData.tables };
+    return { reservations: reservationData.reservations, waitlist: reservationData.waitlist || [], tables: tableData.tables };
   }, []);
 
   const refreshData = useCallback(async () => {
     const data = await loadData();
     setReservations(data.reservations);
+    setWaitlist(data.waitlist);
     setTables(data.tables);
   }, [loadData]);
 
   useEffect(() => {
     loadData()
-      .then(({ reservations: nextReservations, tables: nextTables }) => {
+      .then(({ reservations: nextReservations, waitlist: nextWaitlist, tables: nextTables }) => {
         setReservations(nextReservations);
+        setWaitlist(nextWaitlist);
         setTables(nextTables);
       })
       .catch((error) => setFeedback({ type: 'error', messages: [error.message] }))
@@ -115,6 +118,15 @@ export default function ReservationManager() {
           ),
         ),
     [reservations, selectedDate, statusFilter, searchPhone],
+  );
+
+  const sortedWaitlist = useMemo(
+    () => waitlist.filter((row) =>
+      (!selectedDate || row.date === selectedDate) &&
+      (!searchPhone || row.phone === searchPhone) &&
+      !['cancelled', 'converted'].includes(row.status),
+    ).sort((left, right) => `${left.date} ${left.time}`.localeCompare(`${right.date} ${right.time}`)),
+    [waitlist, selectedDate, searchPhone],
   );
 
   const handleChange = (event) => {
@@ -158,6 +170,19 @@ export default function ReservationManager() {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  const updateWaitlistStatus = async (entryId, status) => {
+    setUpdatingId(`wait-${entryId}`);
+    try {
+      await readResponse(await fetch(`/api/waitlist/${entryId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
+      }));
+      await refreshData();
+      setFeedback({ type: 'success', messages: ['Đã cập nhật danh sách chờ'] });
+    } catch (error) {
+      setFeedback({ type: 'error', messages: [error.message] });
+    } finally { setUpdatingId(null); }
   };
 
   const searchByPhone = async (event) => {
@@ -316,6 +341,22 @@ export default function ReservationManager() {
             {saving ? 'Đang lưu…' : 'Kiểm tra và tạo đặt bàn'}
           </button>
         </form>
+      </article>
+      <article className="panel list-panel waitlist-panel" id="waitlist">
+        <div className="list-heading"><div><p className="eyebrow">KHÔNG CÒN BÀN TRỐNG?</p><h2>Danh sách chờ</h2><p className="supporting-text">Khách sẽ được giữ lại khi khung giờ đã đầy.</p></div><span className="workspace-badge">{sortedWaitlist.length} lượt đang chờ</span></div>
+        <div className="table-list">
+          {sortedWaitlist.length === 0 ? <p>Không có khách đang chờ trong bộ lọc hiện tại.</p> : sortedWaitlist.map((entry) => (
+            <div className="reservation-card" key={`wait-${entry.id}`}>
+              <header><strong>{entry.customerName}</strong><span className="status waiting">Đang chờ</span></header>
+              <p><a href={`tel:${entry.phone}`}>{entry.phone}</a> • {entry.date} lúc {entry.time}</p>
+              <p>{entry.partySize} khách • {entry.durationMinutes} phút • Chưa được xếp bàn</p>
+              <div className="actions">
+                <button type="button" disabled={updatingId === `wait-${entry.id}`} onClick={() => updateWaitlistStatus(entry.id, 'notified')}>Đã liên hệ khách</button>
+                <button className="danger-btn" type="button" disabled={updatingId === `wait-${entry.id}`} onClick={() => updateWaitlistStatus(entry.id, 'cancelled')}>Xóa khỏi danh sách</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </article>
 
       <article className="panel floor-panel" id="floor">
